@@ -1,0 +1,82 @@
+#!/bin/bash
+
+# steps from
+
+HOST_IP=`ifconfig eth0 | grep "inet " | awk '{gsub("addr:","",$2);  print $2 }'`
+
+# Start Zookeeper
+
+docker run -d \
+           -e SERVER_ID=1 \
+           -p 2181:2181 \
+           garland/zookeeper
+
+# docker run -d \
+#            -e SERVER_ID=1 \
+#            -e ADDITIONAL_ZOOKEEPER_1=server.1=1.1.1.1:2888:3888 \
+#            -e ADDITIONAL_ZOOKEEPER_2=server.2=1.1.1.1:2888:3888 \
+#            -e ADDITIONAL_ZOOKEEPER_3=server.3=1.1.1.1:2888:3888 \
+#            -p 2181:2181 \
+#            -p 2888:2888 \
+#            -p 3888:3888 \
+#            garland/zookeeper
+
+# Start Meso Master
+
+docker run -d \
+           --net="host" \
+           -p 5050:5050 \
+           -e "MESOS_HOSTNAME=${HOST_IP}" \
+           -e "MESOS_IP=${HOST_IP}" \
+           -e "MESOS_ZK=zk://${HOST_IP}:2181/mesos" \
+           -e "MESOS_PORT=5050" \
+           -e "MESOS_LOG_DIR=/var/log/mesos" \
+           -e "MESOS_QUORUM=1" \
+           -e "MESOS_REGISTRY=in_memory" \
+           -e "MESOS_WORK_DIR=/var/lib/mesos" \
+           garland/mesosphere-docker-mesos-master
+
+# Start Marathon
+
+docker run -d \
+           -p 8080:8080 \
+           garland/mesosphere-docker-marathon \
+           --master zk://${HOST_IP}:2181/mesos \
+           --zk zk://${HOST_IP}:2181/marathon
+
+# Start Chronos
+
+docker run -d \
+           -p 4400:4400 \
+           mesosphere/chronos \
+           --http_port 4400 \
+           --zk_hosts ${HOST_IP}:2181 \
+           --master zk://${HOST_IP}:2181/mesos
+
+# Start Meso Slave(s)
+
+docker run -d \
+           --entrypoint="mesos-slave" \
+           --expose=31000-31010 \
+           -p 31000:31000 \
+           -p 31001:31001 \
+           -p 31002:31002 \
+           -p 31003:31003 \
+           -p 31004:31004 \
+           -p 31005:31005 \
+           -p 31006:31006 \
+           -p 31007:31007 \
+           -p 31008:31008 \
+           -p 31009:31009 \
+           -p 31010:31010 \
+           -e "MESOS_MASTER=zk://${HOST_IP}:2181/mesos" \
+           -e "MESOS_LOG_DIR=/var/log/mesos" \
+           -e "MESOS_LOGGING_LEVEL=INFO" \
+           garland/mesosphere-docker-mesos-master \
+           --resources="ports(*):[31000-31010]"
+
+sleep 20
+
+# Create a Marathon job
+
+curl -i -H 'Content-Type: application/json' -d@test-app.json $HOST_IP:8080/v2/apps

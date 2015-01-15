@@ -1,0 +1,7 @@
+[submodule "docker-containers"]
+  path = docker-containers
+  url = git://github.com/mesosphere/docker-containers.git
+
+[submodule "mesosphere-docker"]
+  path = mesosphere-docker
+  url = git://github.com/sekka1/mesosphere-docker.git

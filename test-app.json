@@ -1,0 +1,5 @@
+{
+  "id": "test-app",
+  "cmd": "python -m SimpleHTTPServer $PORT",
+  "instances": 1
+}
