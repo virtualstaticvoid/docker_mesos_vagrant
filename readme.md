@@ -34,8 +34,8 @@ cd /vagrant
 
 ### On the host, open the mesos web console
 
-http://localhost:5050
+[http://localhost:5050](http://localhost:5050)
 
 ### On the host, open the marathon web console
 
-http://localhost:8080
+[http://localhost:8080](http://localhost:8080)
